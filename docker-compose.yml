@@ -1,0 +1,12 @@
+version: '3.8'
+services:
+  ubuntu24:
+    build: .
+    container_name: ubuntu24-dev
+    ports:
+      - "22:22"
+      - "8899:8899"
+      - "8900:8900"
+    volumes:
+      - .:/home/admin/workspace
+    tty: true
