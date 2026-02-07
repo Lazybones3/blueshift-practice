@@ -1,7 +1,7 @@
 use pinocchio::{AccountView, Address, ProgramResult, cpi::{Seed, Signer}, error::ProgramError};
-use pinocchio_token::instructions::{CloseAccount, Transfer};
+use pinocchio_token::{instructions::{CloseAccount, Transfer}, state::TokenAccount};
 
-use crate::{AssociatedTokenAccount, Escrow, MintInterface, ProgramAccount, SignerAccount, TokenAccount};
+use crate::{Escrow, helpers::{AccountCheck, AccountClose, AssociatedTokenAccount, AssociatedTokenAccountCheck, AssociatedTokenAccountInit, MintInterface, ProgramAccount, SignerAccount}};
 
 pub struct RefundAccounts<'a> {
     pub maker: &'a AccountView,
@@ -13,9 +13,10 @@ pub struct RefundAccounts<'a> {
     pub token_program: &'a AccountView,
 }
 
-impl<'a> RefundAccounts<'a> {
-    /// 从账户数组解析
-    pub fn try_from_accounts(accounts: &'a [AccountView]) -> Result<Self, ProgramError> {
+impl<'a> TryFrom<&'a [AccountView]> for RefundAccounts<'a> {
+    type Error = ProgramError;
+
+    fn try_from(accounts: &'a [AccountView]) -> Result<Self, Self::Error> {
         if accounts.len() < 7 {
             return Err(ProgramError::NotEnoughAccountKeys);
         }
@@ -54,7 +55,7 @@ impl<'a> TryFrom<&'a [AccountView]> for Refund<'a> {
     type Error = ProgramError;
 
     fn try_from(accounts: &'a [AccountView]) -> Result<Self, Self::Error> {
-        let accounts = RefundAccounts::try_from_accounts(accounts)?;
+        let accounts = RefundAccounts::try_from(accounts)?;
 
         // 初始化 maker_ata_a（如果不存在）
         AssociatedTokenAccount::init_if_needed(
@@ -111,7 +112,7 @@ impl<'a> Refund<'a> {
         let signer = Signer::from(&escrow_seeds);
 
         // 获取 vault 余额
-        let amount = TokenAccount::from_account_info(self.accounts.vault)?.amount()?;
+        let amount = TokenAccount::from_account_view(self.accounts.vault)?.amount();
 
         drop(data);
 
@@ -135,9 +136,4 @@ impl<'a> Refund<'a> {
 
         Ok(())
     }
-}
-
-pub fn refund(accounts: &[AccountView]) -> ProgramResult {
-    let mut refund_ix = Refund::try_from(accounts)?;
-    refund_ix.process()
 }

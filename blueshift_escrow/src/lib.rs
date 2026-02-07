@@ -21,9 +21,9 @@ fn process_instruction(
     instruction_data: &[u8],
 ) -> ProgramResult {
     match instruction_data.split_first() {
-        Some((Make::DISCRIMINATOR, data)) => make(data, accounts),
-        Some((Take::DISCRIMINATOR, _)) => take(accounts),
-        Some((Refund::DISCRIMINATOR, _)) => refund(accounts),
+        Some((Make::DISCRIMINATOR, data)) => Make::try_from((data, accounts))?.process(),
+        Some((Take::DISCRIMINATOR, _)) => Take::try_from(accounts)?.process(),
+        Some((Refund::DISCRIMINATOR, _)) => Refund::try_from(accounts)?.process(),
         _ => Err(ProgramError::InvalidInstructionData)
     }
 }

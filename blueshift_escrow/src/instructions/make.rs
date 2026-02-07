@@ -1,7 +1,7 @@
 use pinocchio::{AccountView, Address, ProgramResult, cpi::Seed, error::ProgramError};
 use pinocchio_token::instructions::Transfer;
 
-use crate::{AssociatedTokenAccount, Escrow, MintInterface, ProgramAccount, SignerAccount};
+use crate::{Escrow, helpers::{AccountCheck, AssociatedTokenAccountCheck, AssociatedTokenAccountInit, ProgramAccountInit}, instructions::helpers::{AssociatedTokenAccount, MintInterface, ProgramAccount, SignerAccount}};
 
 pub struct MakeAccounts<'a> {
     pub maker: &'a AccountView,
@@ -128,9 +128,4 @@ impl<'a> Make<'a> {
         }.invoke()?;
         Ok(())
     }
-}
-
-pub fn make(data: &[u8], accounts: &[AccountView]) -> ProgramResult {
-    let mut make_ix = Make::try_from((data, accounts))?;
-    make_ix.process()
 }

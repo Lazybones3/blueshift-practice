@@ -1,7 +1,8 @@
 use pinocchio::{AccountView, Address, ProgramResult, cpi::{Seed, Signer}, error::ProgramError};
-use pinocchio_token::instructions::{CloseAccount, Transfer};
+use pinocchio_token::{instructions::{CloseAccount, Transfer}, state::TokenAccount};
 
-use crate::{AssociatedTokenAccount, Escrow, MintInterface, ProgramAccount, SignerAccount, TokenAccount};
+use crate::{Escrow, helpers::{AccountCheck, AccountClose, AssociatedTokenAccount, AssociatedTokenAccountCheck, AssociatedTokenAccountInit, MintInterface, ProgramAccount, SignerAccount}};
+
 
 pub struct TakeAccounts<'a> {
     pub taker: &'a AccountView,
@@ -17,8 +18,10 @@ pub struct TakeAccounts<'a> {
     pub token_program: &'a AccountView,
 }
 
-impl<'a> TakeAccounts<'a> {
-    pub fn try_from_accounts(accounts: &'a [AccountView]) -> Result<Self, ProgramError> {
+impl<'a> TryFrom<&'a [AccountView]> for TakeAccounts<'a> {
+    type Error = ProgramError;
+
+    fn try_from(accounts: &'a [AccountView]) -> Result<Self, Self::Error> {
         if accounts.len() < 11 {
             return Err(ProgramError::NotEnoughAccountKeys);
         }
@@ -54,7 +57,7 @@ impl<'a> TryFrom<&'a [AccountView]> for Take<'a> {
     type Error = ProgramError;
 
     fn try_from(accounts: &'a [AccountView]) -> Result<Self, Self::Error> {
-        let accounts = TakeAccounts::try_from_accounts(accounts)?;
+        let accounts = TakeAccounts::try_from(accounts)?;
 
         // 初始化必要的 ATA（如果不存在）
         AssociatedTokenAccount::init_if_needed(
@@ -110,7 +113,7 @@ impl<'a> Take<'a> {
 
         let signer = Signer::from(&escrow_seeds);
 
-        let amount = TokenAccount::from_account_info(self.accounts.vault)?.amount()?;
+        let amount = TokenAccount::from_account_view(self.accounts.vault)?.amount();
 
         let receive_amount = escrow.receive;
 
@@ -144,9 +147,4 @@ impl<'a> Take<'a> {
 
         Ok(())
     } 
-}
-
-pub fn take(accounts: &[AccountView]) -> ProgramResult {
-    let mut take_ix = Take::try_from(accounts)?;
-    take_ix.process()
 }
