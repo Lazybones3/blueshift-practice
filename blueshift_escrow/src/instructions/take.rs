@@ -45,7 +45,19 @@ impl<'a> TryFrom<&'a [AccountView]> for TakeAccounts<'a> {
         AssociatedTokenAccount::check(taker_ata_b, taker, mint_b, token_program)?;
         AssociatedTokenAccount::check(vault, escrow, mint_a, token_program)?;
 
-        Ok(Self { taker, maker, escrow, mint_a, mint_b, vault, taker_ata_a, taker_ata_b, maker_ata_b, system_program, token_program })
+        Ok(Self {
+            taker,
+            maker,
+            escrow,
+            mint_a,
+            mint_b,
+            taker_ata_a,
+            taker_ata_b,
+            maker_ata_b,
+            vault,
+            system_program,
+            token_program,
+        })
     }
 }
 
@@ -139,11 +151,11 @@ impl<'a> Take<'a> {
             authority: self.accounts.taker,
             amount: receive_amount,
         }.invoke()?;
+        
+        drop(data);
 
         // 4. 关闭 Escrow（转移 lamports 到 maker 并清零数据）
-        ProgramAccount::close(self.accounts.escrow, self.accounts.maker)?;
-
-        drop(data);
+        ProgramAccount::close(self.accounts.escrow, self.accounts.taker)?;
 
         Ok(())
     } 
